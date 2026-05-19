@@ -1,0 +1,232 @@
+import os
+import pandas as pd
+from flask import Flask, render_template, request, jsonify
+
+app = Flask(__name__)
+
+# Mock del modelo predictivo Amixtli (Estructura Lineal Aritmética)
+class MockAmixtliModel:
+    def predict(self, df_features):
+        suma_atributos = df_features['tiempo_exploracion_seg'] + df_features['interacciones_3d_count']
+        return [int(suma_atributos.iloc[0] % 3)]
+
+modelo_ami_xtli = MockAmixtliModel()
+
+# ------------------------------------------------------------------------------
+# BASE DE DATOS INCLUSIVA MULTILINGÜE Y DIALECTAL (5 PIEZAS SIN IF/ELSE)
+# ------------------------------------------------------------------------------
+MUSEUM_CATALOG = {
+    1: {
+        "es": {"titulo": "La Noche Estrellada", "autor": "Vincent van Gogh"},
+        "en": {"titulo": "The Starry Night", "autor": "Vincent van Gogh"},
+        "nci": {"titulo": "Citlalohualoyan Ilhuicatl", "autor": "Vincent van Gogh"},
+        "may": {"titulo": "E'ek' Jo'och'e'el Ka'an", "autor": "Vincent van Gogh"},
+        "ano": "1889",
+        "imagen": "noche_estrellada.png",
+        "modelo_3d": "noche_estrellada.glb",
+        "textos_adaptativos": {
+            0: {
+                "es": "La Noche Estrellada presenta un cielo nocturno turbulento y vibrante con espirales de energía.",
+                "en": "The Starry Night features a turbulent and vibrant night sky with swirls of energy.",
+                "nci": "Yohualtiliztli citlaloh ilhuicatl quinextia hueyi ehecatl iuan tlahuilli camiltic.",
+                "may": "U ye'esik jump'éel ki'ichpam ka'an tu'ux ku yila'al u xíitil u muuk' u loolo'ob sáas?"
+            },
+            1: {
+                "es": "Exploración Auditiva: Atmósfera de trazos gruesos y dinámicos que simulan el viento nocturno.",
+                "en": "Auditory Exploration: An atmosphere of thick, dynamic brushstrokes simulating night wind.",
+                "nci": "Tlacaquiliztli tlacuilolli: Ehecatl yohuac tlein nican quicaquiltia tlalnamiquiliztli.",
+                "may": "U u'uyul paax: Jump'éel ordered u k'a'am iik'al k'iin ti' le jo'och'e'elil ka'ano'."
+            },
+            2: {
+                "es": "Van Gogh pintó esta obra desde el asilo de Saint-Rémy-de-Provence durante su estancia.",
+                "en": "Van Gogh painted this masterpiece from the asylum of Saint-Rémy-de-Provence during his stay.",
+                "nci": "Van Gogh quicuiloh inin tlamahuizolli tlacuilolli iuan tlatzacuilocan ipan Saint-Rémy.",
+                "may": "Van Gogh tu ts'íibtaj le naddabal p'o'ocil k'iin ti' le ts'a'abal k'oja'anil Saint-Rémy."
+            }
+        }
+    },
+    2: {
+        "es": {"titulo": "El Pensador", "autor": "Auguste Rodin"},
+        "en": {"titulo": "The Thinker", "autor": "Auguste Rodin"},
+        "nci": {"titulo": "In Tlamatini", "autor": "Auguste Rodin"},
+        "may": {"titulo": "Le J-Tuukulóo", "autor": "Auguste Rodin"},
+        "ano": "1904",
+        "imagen": "El_pensador.jpg",
+        "modelo_3d": "el_pensador.glb",
+        "textos_adaptativos": {
+            0: {
+                "es": "El Pensador es una escultura de bronce que representa a una figura masculina sentada absorta en pensamientos.",
+                "en": "The Thinker is a bronze sculpture representing a male figure sitting deeply absorbed in thought.",
+                "nci": "Tepoztli tlachihualolli tlein quinextia ce oquichtli tlalnamictoc ipan ce tetl.",
+                "may": "Jump'éel jats'uts t'u'ubul ooc t'o'ol jol tu'ux ku yila'al jump'éel xi'ipal tuukul."
+            },
+            1: {
+                "es": "Exploración Háptica: Enfoque estructural detallado en la musculatura tensa y la pose física.",
+                "en": "Haptic Exploration: Detailed structural focus on the tense musculature and physical pose.",
+                "nci": "Tlamatiliztli chicuacualiztli: Chicuactic tlacacuerpo tlein mopatlatoc ica tlalnamiquiliztli.",
+                "may": "U machal ooc: Chíika'an u muuk' u wíinkilal le j-tuukulo' tu yóok'ol le k'a'am tuukulo'."
+            },
+            2: {
+                "es": "Originalmente concebida para formar parte de la obra monumental 'Las Puertas del Infierno'.",
+                "en": "Originally conceived to be part of the monumental work 'The Gates of Hell'.",
+                "nci": "Achto mochihualoc tlein yezquia tlatlapoloyan ipan Mictlan tlacuiloltepoztli.",
+                "may": "Yáax beelta'ab utia'al u j-ts'áabal ichil u jats'uts jool k'áaj 'U Joolo'ob Mitnal'."
+            }
+        }
+    },
+    3: {
+        "es": {"titulo": "La Mona Lisa", "autor": "Leonardo da Vinci"},
+        "en": {"titulo": "The Mona Lisa", "autor": "Leonardo da Vinci"},
+        "nci": {"titulo": "Cihuapilli Mona Lisa", "autor": "Leonardo da Vinci"},
+        "may": {"titulo": "Ko'olel Mona Lisa", "autor": "Leonardo da Vinci"},
+        "ano": "1503",
+        "imagen": "mona_lisa.jpg",
+        "modelo_3d": "monalisa.glb",
+        "textos_adaptativos": {
+            0: {
+                "es": "La Mona Lisa es un retrato renacentista que destaca por la enigmática expresión de la modelo.",
+                "en": "The Mona Lisa is a Renaissance portrait notable for the model's enigmatic expression.",
+                "nci": "Cihuatlacuilolli tlein quinextia ce ixtli tlein amo momati tlein quixtia uan quinequi.",
+                "may": "Jump'éel u yooc u yich ko'olel jats'uts t'u'ubul, ku ye'esik jump'éel che'ej muuk'bil."
+            },
+            1: {
+                "es": "Exploración Visual Guiada: Contraste suave de luces y sombras enfocado en la icónica sonrisa.",
+                "en": "Guided Visual Exploration: Soft contrast of light and shadows focused on the iconic smile.",
+                "nci": "Tlachiyaliztli tlahuilli: Camiltic tepoztli iuan tlahuilli ipan inahuac camactli.",
+                "may": "U yila'al sáasil: Bo'oy ka'an jump'éelili' u t'u'ubul tu yóok'ol u ki'ichpam che'ej."
+            },
+            2: {
+                "es": "También conocida como La Gioconda, es considerada la obra pictórica más famosa del mundo.",
+                "en": "Also known as La Gioconda, it is considered the most famous pictorial work in the world.",
+                "nci": "Noiuan motocayotia In Gioconda, tlacuilolli tlein tlapanahuia tlamahuizolli ipan cemanahuac.",
+                "may": "K'ajóolta'an xan bey La Gioconda, le naddabal t'u'ubul ooc asab k'ajóolta'an ti' ka'an."
+            }
+        }
+    },
+    4: {
+        "es": {"titulo": "Palacio de Bellas Artes", "autor": "Adamo Boari / Federico Mariscal"},
+        "en": {"titulo": "Palace of Fine Arts", "autor": "Adamo Boari / Federico Mariscal"},
+        "nci": {"titulo": "Cualnezcayotl Tecpan", "autor": "Adamo Boari / Federico Mariscal"},
+        "may": {"titulo": "U Jats'uts K'íwik J-Men", "autor": "Adamo Boari / Federico Mariscal"},
+        "ano": "1934",
+        "imagen": "Bellas_artes.jpg",
+        "modelo_3d": "palacio_de_bellas_artes.glb",
+        "textos_adaptativos": {
+            0: {
+                "es": "El Palacio de Bellas Artes es el máximo recinto cultural de México, mezclando Art Nouveau y Art Déco.",
+                "en": "The Palace of Fine Arts is the maximum cultural venue in Mexico, blending Art Nouveau and Art Déco.",
+                "nci": "Mexihco hueyi tecpan tlein quinextia tlamahuizoliztli cualnezcayotl tetic iuan tlanextli.",
+                "may": "U noj k'íwik jats'uts j-men ti' México, tu'ux ku t'u'ubul jump'éel u yáax kuxtal."
+            },
+            1: {
+                "es": "Exploración Espacial: Estructura monumental con fachada de mármol blanco de Carrara y detalles escultóricos.",
+                "en": "Spatial Exploration: Monumental structure with a white Carrara marble facade and sculptural details.",
+                "nci": "Tecpancalli chicuactic tlachihualoc ica chipahuac iztac tetl Carrara uan cualnezqui.",
+                "may": "U xíitil k'íwik: Jump'éel ordered noj t'u'ubul ooc u yich sak Carrara tu'ux ku yila'al jats'uts."
+            },
+            2: {
+                "es": "Su construcción inició en 1904 por el Porfiriato y se concluyó en 1934 tras la Revolución.",
+                "en": "Its construction began in 1904 during the Porfiriato and concluded in 1934 after the Revolution.",
+                "nci": "Pehualoc tlachihualo ipan xihuitl 1904 iuan tlamico ipan xihuitl 1934 zatepan tlacameh yaoyotl.",
+                "may": "Chúun u beelta'al tu k'iinil 1904 j-ts'o'ok k'ochil tu k'iinil 1934 ka'aj ts'o'ok yaoyotil."
+            }
+        }
+    },
+    5: {
+        "es": {"titulo": "Calendario Azteca", "autor": "Civilización Mexica"},
+        "en": {"titulo": "Aztec Calendar", "autor": "Mexica Civilization"},
+        "nci": {"titulo": "Tonalamatl Mexicatl", "autor": "Civilización Mexica"},
+        "may": {"titulo": "U K'iinil Mexica P'o'oc", "autor": "Civilización Mexica"},
+        "ano": "1250-1521",
+        "imagen": "Calendario_azteca.jpg",
+        "modelo_3d": "calendario_azteca.glb",
+        "textos_adaptativos": {
+            0: {
+                "es": "La Piedra del Sol es un disco monolítico de basalto con inscripciones de la cosmogonía mexica.",
+                "en": "The Sun Stone is a monolithic basalt disk with inscriptions of the Mexica cosmogony.",
+                "nci": "Tonatiuh Tetl, ce ololiuhcayotl tetic tepoztli tlein quipia tlacuilolli itech cemanahuac.",
+                "may": "U Tunichil K'iin jump'éel ordered noj tunich tu'ux ku ts'íibta'al u ya'almaj t'aanil u kuxtalo'ob."
+            },
+            1: {
+                "es": "Exploración Relieve: Complejo laberinto de círculos concéntricos tallados con iconografía sagrada.",
+                "en": "Relief Exploration: Complex labyrinth of concentric circles carved with sacred iconography.",
+                "nci": "Tlachihualtepetl tlatzacuilocan: Ololiuhqui apan tlein quipia tlacuilolpitzahuac yohualtzin.",
+                "may": "U machal ordered: Jump'éel jats'uts ordered u pak'al u t'u'ubul ooc t'o'ol jol iconografía."
+            },
+            2: {
+                "es": "Descubierta en 1790 en el Zócalo de la Ciudad de México, resume su conocimiento astronómico.",
+                "en": "Discovered in 1790 at the Mexico City Zócalo, it summarizes their astronomical knowledge.",
+                "nci": "Pantitloc ipan xihuitl 1790 nican Mexihco Hueyialtepetl, quipia ilhuicamatiliztli.",
+                "may": "Ka'aj t'u'ubul tu k'iinil 1790 ti' u noj k'íwik México, ku ye'esik u noj tuukul ilhuicaj k'iin."
+            }
+        }
+    }
+}
+
+DICCIONARIO_PERFILES_UI = {
+    0: {"es": "Estándar Visual Premium", "en": "Premium Visual Standard", "nci": "Visual Premium Tlamatiliztli", "may": "U Ki'ichpam Visual Standard", "color_tema": "#38bdf8", "tamano_fuente": "16px"},
+    1: {"es": "Accesibilidad Auditiva/Háptica", "en": "Auditory/Haptic Accessibility", "nci": "Tlacaquiliztli/Chicuacualiztli", "may": "U U'uyul Paax Machal", "color_tema": "#a855f7", "tamano_fuente": "20px"},
+    2: {"es": "Informativo/Alto Contraste", "en": "Informative/High Contrast", "nci": "Tlanextli Chicahuac", "may": "U Ch'íika'an Contraste", "color_tema": "#eab308", "tamano_fuente": "18px"}
+}
+
+TEXTOS_INTERFAZ = {
+    "es": {"galeria": "Galería de Exhibiciones", "selecciona": "Selecciona una obra maestra para iniciar la experiencia adaptativa", "volver": "Volver a la Galería", "telemetria": "Métricas de Telemetría (Frontera)", "tiempo": "Tiempo", "giros": "Giros 3D", "pulsos": "Pulsos", "analizando": "Analizando...", "desc_adaptativa": "Descripción Adaptativa"},
+    "en": {"galeria": "Exhibition Gallery", "selecciona": "Select a masterpiece to start the adaptive 3D rendering experience", "volver": "Back to Gallery", "telemetria": "Telemetry Metrics (Frontier)", "tiempo": "Time", "giros": "3D Turns", "pulsos": "Pulses", "analizando": "Analyzing...", "desc_adaptativa": "Adaptive Description"},
+    "nci": {"galeria": "Tlamahuizoliztli Calli", "selecciona": "Xicpepena ce cualnezqui tlacuilolli tlein ticnequi tiquiztlacoz", "volver": "Tlacuepaliztli Calli", "telemetria": "Tlamatiliztli Metricas", "tiempo": "Cahuitl", "giros": "Malacachoa 3D", "pulsos": "Tlatotoyoniliztli", "analizando": "Tlalnamiquiz...", "desc_adaptativa": "Tlalnamiquiliztli Melahuac"},
+    "may": {"galeria": "U Noj K'íwik Jats'uts Jo'ol", "selecciona": "Yéey jump'éel naddabal p'o'ocil k'iin utia'al u chúunul ordered render", "volver": "Suut ti' le K'íwiko'", "telemetria": "U P'o'ocil Telemetría", "tiempo": "K'iinil", "giros": "Suut 3D", "pulsos": "Pulsos", "analizando": "Tuukul...", "desc_adaptativa": "U Ki'ichpam Ya'almaj T'aan"}
+}
+
+# ------------------------------------------------------------------------------
+# ENDPOINTS DE ENRUTAMIENTO (SECUENCIA PLANA SIN CONDICIONALES)
+# ------------------------------------------------------------------------------
+@app.route('/')
+def inicio_loading():
+    return render_template('loading.html')
+
+@app.route('/login')
+def portal_bienvenida():
+    return render_template('login.html')
+
+@app.route('/galeria/<lang>')
+def mostrar_galeria(lang):
+    textos = TEXTOS_INTERFAZ.get(lang, TEXTOS_INTERFAZ["es"])
+    return render_template('index.html', exhibits=MUSEUM_CATALOG, lang=lang, t=textos)
+
+@app.route('/exhibicion/<lang>/<int:exhibit_id>')
+def exhibit_detail(lang, exhibit_id):
+    obra_seleccionada = MUSEUM_CATALOG.get(exhibit_id, MUSEUM_CATALOG[1])
+    textos = TEXTOS_INTERFAZ.get(lang, TEXTOS_INTERFAZ["es"])
+    return render_template('exhibit.html', exhibit=obra_seleccionada, exhibit_id=exhibit_id, lang=lang, t=textos)
+
+@app.route('/api/predict_ui', methods=['POST'])
+def predict_ui():
+    json_data = request.get_json()
+    exhibit_id = int(json_data.get('id_obra_arte', 1))
+    lang = json_data.get('lang', 'es')
+    
+    features_vector = pd.DataFrame([{
+        'tiempo_exploracion_seg': float(json_data.get('tiempo_exploracion_seg', 0)),
+        'interacciones_3d_count': int(json_data.get('interacciones_3d_count', 0)),
+        'pulsos_hapticos_detonados': int(json_data.get('pulsos_hapticos_detonados', 0)),
+        'solicitudes_audio_descripcion': 0,
+        'id_obra_arte': exhibit_id,
+        'velocidad_scroll_promedio': 12.5
+    }])
+    
+    clase_predicha = int(modelo_ami_xtli.predict(features_vector)[0])
+    perfil_base = DICCIONARIO_PERFILES_UI.get(clase_predicha, DICCIONARIO_PERFILES_UI[0])
+    
+    obra = MUSEUM_CATALOG.get(exhibit_id, MUSEUM_CATALOG[1])
+    textos_obra = obra.get("textos_adaptativos", {0: {"es": "N/A", "en": "N/A"}})
+    
+    configuracion_ui = {
+        "nombre_perfil": perfil_base.get(lang, perfil_base["es"]),
+        "color_tema": perfil_base["color_tema"],
+        "tamano_fuente": perfil_base["tamano_fuente"],
+        "texto_dinamico": textos_obra.get(clase_predicha, textos_obra[0]).get(lang, "Error")
+    }
+    
+    return jsonify(configuracion_ui)
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)

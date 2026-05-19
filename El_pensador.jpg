@@ -1,0 +1,261 @@
+/* --- CONFIGURACIÓN GENERAL --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0f172a; /* Fondo oscuro elegante */
+    color: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* --- HEADER Y FOOTER --- */
+.main-header {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    border-bottom: 2px solid #334155;
+}
+
+.main-header h1 {
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    color: #38bdf8; /* Azul tecnológico neón */
+}
+
+.main-header p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+.main-footer {
+    background-color: #0f172a;
+    text-align: center;
+    padding: 1rem;
+    color: #64748b;
+    font-size: 0.85rem;
+    margin-top: auto;
+    border-top: 1px solid #1e293b;
+}
+
+/* --- CONTENEDORES --- */
+.container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+    width: 100%;
+}
+
+.carousel-container {
+    width: 100%;
+    padding: 1rem 0;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+}
+
+/* --- CARRUSEL ESTILO EPIC GAMES (FLEXBOX DINÁMICO) --- */
+.epic-carousel {
+    display: flex;
+    width: 100%;
+    height: 65vh; /* Altura ideal en pantalla */
+    gap: 0.5rem;
+    padding: 0 1rem;
+    overflow: hidden;
+}
+
+.carousel-panel {
+    flex: 1; /* Todos los páneles inician con el mismo ancho */
+    background-size: cover;
+    background-position: center;
+    border-radius: 16px;
+    text-decoration: none;
+    color: white;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    padding: 2rem;
+    transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1); /* Animación ultra fluida */
+    border: 1px solid #1e293b;
+}
+
+/* Efecto de expansión Senior al pasar el mouse */
+.carousel-panel:hover {
+    flex: 3.5; /* El panel seleccionado se hace mucho más grande */
+    border-color: #38bdf8;
+    box-shadow: 0 10px 30px rgba(56, 189, 248, 0.2);
+}
+
+/* --- CONTENIDO DENTRO DE CADA PANEL --- */
+.panel-content {
+    width: 100%;
+    transform: translateY(20px);
+    transition: transform 0.4s ease;
+    opacity: 0.8;
+}
+
+.carousel-panel:hover .panel-content {
+    transform: translateY(0); /* Sube suavemente cuando se expande */
+    opacity: 1;
+}
+
+.panel-content h2 {
+    font-size: 1.4rem;
+    margin: 0.5rem 0 0.2rem 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    white-space: nowrap; /* Evita que el texto se rompa feo cuando el panel está chico */
+}
+
+.artist-name {
+    color: #cbd5e1;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+}
+
+/* Botón oculto por defecto, aparece solo en el panel activo */
+.btn-discover {
+    display: inline-block;
+    background-color: #38bdf8;
+    color: #0f172a;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.carousel-panel:hover .btn-discover {
+    opacity: 1;
+}
+
+/* --- BADGES (ETIQUETAS) --- */
+.badge-category {
+    background-color: rgba(30, 41, 59, 0.85);
+    color: #38bdf8;
+    border: 1px solid #38bdf8;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* --- VISTA DE DETALLE (EXHIBIT DETAIL) --- */
+.exhibit-detail-wrapper {
+    display: flex;
+    gap: 3rem;
+    background-color: #1e293b;
+    border-radius: 24px;
+    padding: 2.5rem;
+    border: 1px solid #334155;
+    align-items: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+.exhibit-frame {
+    flex: 1;
+    max-height: 500px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    border: 4px solid #334155;
+}
+
+.exhibit-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.exhibit-info-card {
+    flex: 1;
+}
+
+.exhibit-info-card h1 {
+    font-size: 2.5rem;
+    color: #ffffff;
+    margin-top: 0.5rem;
+}
+
+.detail-artist {
+    color: #94a3b8;
+    font-weight: 400;
+    margin-bottom: 1.5rem;
+}
+
+.divider {
+    height: 2px;
+    background-color: #334155;
+    margin-bottom: 1.5rem;
+}
+
+.technical-sheet {
+    width: 100%;
+    margin-bottom: 1.5rem;
+    border-collapse: collapse;
+}
+
+.technical-sheet td {
+    padding: 0.5rem 0;
+    font-size: 1rem;
+    color: #cbd5e1;
+}
+
+.technical-sheet td i {
+    margin-right: 8px;
+    color: #38bdf8;
+}
+
+.detail-description {
+    color: #94a3b8;
+    line-height: 1.7;
+    font-size: 1.05rem;
+    margin-bottom: 2rem;
+}
+
+.btn-back {
+    display: inline-block;
+    background-color: transparent;
+    color: #38bdf8;
+    border: 2px solid #38bdf8;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn-back:hover {
+    background-color: #38bdf8;
+    color: #0f172a;
+    box-shadow: 0 5px 15px rgba(56, 189, 248, 0.3);
+}
+
+/* --- RESPONSIBER (ADAPTACIÓN A CELULARES) --- */
+@media (max-width: 768px) {
+    .epic-carousel {
+        flex-direction: column; /* Se vuelve vertical en pantallas chicas */
+        height: auto;
+    }
+    .carousel-panel {
+        height: 200px;
+    }
+    .carousel-panel:hover {
+        flex: none;
+        height: 300px;
+    }
+    .exhibit-detail-wrapper {
+        flex-direction: column;
+        padding: 1.5rem;
+    }
+}
